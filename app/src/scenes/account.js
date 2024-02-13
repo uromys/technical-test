@@ -30,7 +30,7 @@ export default () => {
       dispatch(setUser(responseData.user));
     } catch (e) {
       console.log(e);
-      toast.error("Some Error!");
+      toast.error(e.code, e.code);
     }
     setIsLoading(false);
   }
