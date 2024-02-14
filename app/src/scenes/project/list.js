@@ -2,12 +2,14 @@ import { Formik } from "formik";
 import React, { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { useHistory } from "react-router-dom";
+import { MdDeleteSweep } from "react-icons/md";
 
 import Loader from "../../components/loader";
 import LoadingButton from "../../components/loadingButton";
 import ProgressBar from "../../components/ProgressBar";
 
 import api from "../../services/api";
+
 const ProjectList = () => {
   const [projects, setProjects] = useState(null);
   const [activeProjects, setActiveProjects] = useState(null);
@@ -15,17 +17,46 @@ const ProjectList = () => {
   const history = useHistory();
 
   useEffect(() => {
+    let isMounted = true;
     (async () => {
       const { data: u } = await api.get("/project");
-      setProjects(u);
+      if (isMounted) {
+        setProjects(u);
+      }
     })();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   useEffect(() => {
+    let isMounted = true;
     const p = (projects || []).filter((p) => p.status === "active");
-    setActiveProjects(p);
+    if (isMounted) {
+      setActiveProjects(p);
+    }
+    return () => {
+      isMounted = false;
+    };
   }, [projects]);
 
+  async function onDelete(i) {
+    const projectToDelete = projects[i];
+    try {
+      await api.remove(`/project/${projectToDelete._id}`);
+      toast.success(`Deleted ${projectToDelete.name}`);
+      // Remove the deleted project from the projects state
+      const updatedProjects = projects.filter((project, index) => index !== i);
+      setProjects(updatedProjects);
+
+      // Update activeProjects state to reflect the changes
+      const activeProjects = updatedProjects.filter(project => project.status === "active");
+      setActiveProjects(activeProjects);
+    } catch (error) {
+      console.error("Error deleting project:", error);
+      toast.error("Failed to delete project");
+    }
+  }
   if (!projects || !activeProjects) return <Loader />;
 
   const handleSearch = (searchedValue) => {
@@ -35,28 +66,34 @@ const ProjectList = () => {
 
   return (
       <div className="w-full p-2 md:!px-8">
-        <Create onChangeSearch={handleSearch} />
+        <Create onChangeSearch={handleSearch} setProjects={setProjects} />
         <div className="py-3">
-          {activeProjects.map((hit) => {
+          {activeProjects.map((hit,i) => {
             return (
                 <div
                     key={hit._id}
                     onClick={() => history.push(`/project/${hit._id}`)}
-                    className="flex justify-between flex-wrap p-3 border border-[#FFFFFF] bg-[#F9FBFD] rounded-[16px] mt-3 cursor-pointer">
+                    className="flex justify-between flex-wrap p-3 border border-[#FFFFFF] bg-[#F9FBFD] rounded-[16px] mt-3 cursor-pointer"
+                >
                   <div className="flex w-full md:w-[25%] border-r border-[#E5EAEF]">
-                    <div className="flex flex-wrap gap-4 items-center">
-                      {hit.logo && <img className="w-[85px] h-[85px] rounded-[8px] object-contain	" src={hit.logo} alt="ProjectImage.png" />}
+                    <div className="flex flex-wrap gap-4 items-center" onClick={() => history.push(`/project/${hit._id}`)}>
+                      {hit.logo && <img className="w-[85px] h-[85px] rounded-[8px] object-contain" src={hit.logo} alt="ProjectImage.png" />}
                       <div className="flex flex-col flex-wrap flex-1">
                         <div className="text-[18px] text-[#212325] font-semibold flex flex-wrap">{hit.name}</div>
                       </div>
                     </div>
                   </div>
-                  <div className="w-full md:w-[50%] border-r border-[#E5EAEF] pl-[10px]">
+                  <div onClick={() => history.push(`/project/${hit._id}`)} className="w-full md:w-[50%] border-r border-[#E5EAEF] pl-[10px]">
                     <span className="text-[14px] font-medium text-[#212325]">{hit.description ? hit.description : ""}</span>
                   </div>
                   <div className="w-full md:w-[25%]  px-[10px]">
                     <span className="text-[16px] font-medium text-[#212325]">Budget consumed {hit.paymentCycle === "MONTHLY" && "this month"}:</span>
                     <Budget project={hit} />
+                  </div>
+                  <div className="w-full md:w-[10%]  px-[10px] flex justify-center items-center">
+                    <div className={`cursor-pointer text-xl hover:text-red-500`}>
+                      <MdDeleteSweep style={{ fontSize: '20px' }} onClick={() => onDelete(i)} />
+                    </div>
                   </div>
                 </div>
             );
@@ -92,7 +129,7 @@ const Budget = ({ project }) => {
   return <ProgressBar percentage={width} max={budget_max_monthly} value={total} />;
 };
 
-const Create = ({ onChangeSearch }) => {
+const Create = ({ onChangeSearch, setProjects }) => {
   const [open, setOpen] = useState(false);
 
   return (
@@ -131,11 +168,10 @@ const Create = ({ onChangeSearch }) => {
                 onClick={() => {
                   setOpen(false);
                 }}>
-              <div
-                  className="w-full md:w-[60%] max-h-[200px] bg-[white] p-[25px] rounded-md"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                  }}>
+              <div                  className="w-full md:w-[60%] max-h-[200px] bg-[white] p-[25px] rounded-md"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                    }}>
                 {/* Modal Body */}
                 <Formik
                     initialValues={{}}
@@ -145,6 +181,8 @@ const Create = ({ onChangeSearch }) => {
                         const res = await api.post("/project", values);
                         if (!res.ok) throw res;
                         toast.success("Created!");
+                        const updatedProjects = await api.get("/project"); // Fetch updated project list
+                        setProjects(updatedProjects.data); // Update projects list
                         setOpen(false);
                       } catch (e) {
                         console.log(e);
@@ -177,3 +215,4 @@ const Create = ({ onChangeSearch }) => {
 };
 
 export default ProjectList;
+
