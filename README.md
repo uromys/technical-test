@@ -37,7 +37,16 @@ Time to be creative, and efficient. Do what you think would be the best for your
 ## Finally
 
 Send us the project and answer to those simple questions : 
-- What bugs did you find ? How did you solve these and why ? 
-- Which feature did you develop and why ? 
-- Do you have any feedback about the code / architecture of the project and what was the difficulty you encountered while doing it ? 
+- What bugs did you find ? 
+- fix : the API password  now have the same validation as the front
+- fix : remove the password from API response
+- fix : remove the header myaccount still open after clicking 
+- fix : added more verbose on error 
+- fix : the project page is now availaible and do not return a 500 
+- feat : add a formate validator to email
+- feat : deletion of project
+- feat : update/deletion do not requires update of the page 
 
+- Do you have any feedback about the code / architecture of the project and what was the difficulty you encountered while doing it ? 
+- Docker :p 
+- Test , I wanted to add jest but I had issue with upgrade
